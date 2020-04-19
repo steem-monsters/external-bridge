@@ -1,0 +1,15 @@
+{
+  "name": "@splinterlands/external-bridge",
+  "version": "1.0.0",
+  "description": "Library to bridge transactions from an external blockchain to Splinterlands",
+  "main": "external-bridge.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "yabapmatt",
+  "license": "MIT",
+  "dependencies": {
+    "steem-interface": "^1.1.6",
+    "ws": "^7.2.3"
+  }
+}
