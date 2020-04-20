@@ -41,7 +41,7 @@ async function sendDec(to, qty) {
 	});
 }
 
-async function sendPacks(to, qty, editiony) {
+async function sendPacks(to, qty, edition) {
 	if(!_options.account) {
 		utils.log(`Error: Property "account" missing from the "options" object.`, 1, 'Red');
 		return;
