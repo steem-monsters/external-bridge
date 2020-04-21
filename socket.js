@@ -16,7 +16,7 @@ function startClient(url, name, on_tx, ops) {
 		
 		local_service.on('close', function (e) { 
 			utils.log('Socket disconnected...', 2);
-			setTimeout(() => startClient(on_tx), 1000);
+			setTimeout(() => startClient(url, name, on_tx, ops), 1000);
 		});
 
 		local_service.on('message', message => {
