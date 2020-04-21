@@ -62,4 +62,28 @@ async function sendPacks(to, qty, edition) {
 	});
 }
 
-module.exports = { init, stream, sendDec, sendPacks };
+async function tournamentPayment(tournament_id, amount, currency) {
+	let data = { tournament_id, payment: `${amount} ${currency}` };
+
+	return new Promise((resolve, reject) => {
+		try {
+			steem.custom_json(`${_options.prefix}tournament_payment`, data, _options.game_account, _options.game_account_active_key, true)
+				.then(resolve)
+				.catch(reject);
+		} catch (err) { reject(err); }
+	});
+}
+
+async function tournamentEntry(tournament_id, player, amount, currency) {
+	let data = { tournament_id, player, payment: `${amount} ${currency}` };
+	
+	return new Promise((resolve, reject) => {
+		try {
+			steem.custom_json(`${_options.prefix}enter_tournament`, data, _options.game_account, _options.game_account_active_key, true)
+				.then(resolve)
+				.catch(reject);
+		} catch (err) { reject(err); }
+	});
+}
+
+module.exports = { init, stream, sendDec, sendPacks, tournamentPayment, tournamentEntry };
