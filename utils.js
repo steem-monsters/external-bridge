@@ -4,6 +4,8 @@ function set_options(options) {
 	_options = Object.assign(_options, options);
 }
 
+function getCurrency(amount) { return amount.substr(amount.indexOf(' ') + 1); }
+
 // Logging levels: 1 = Error, 2 = Warning, 3 = Info, 4 = Debug
 function log(msg, level, color) { 
   if(!level)
@@ -59,5 +61,6 @@ module.exports = {
 	set_options,
 	log,
 	timeout,
-	tryParse
+	tryParse,
+	getCurrency
 }
