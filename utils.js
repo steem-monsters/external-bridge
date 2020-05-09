@@ -1,7 +1,35 @@
+const request = require("request");
+
 let _options = { logging_level: 3 };
 
 function set_options(options) {
 	_options = Object.assign(_options, options);
+}
+
+async function getHeadBlockNum() {
+	return new Promise((resolve, reject) => {
+		request.get(`${_options.game_api_url}/last_block`, (e, r, data) => {
+			let resp = tryParse(data);
+
+			if(resp && resp.last_block)
+				resolve(resp.last_block);
+			else
+				reject(e);
+		});
+	});
+}
+
+async function getBlock(block_num) {
+	return new Promise((resolve, reject) => {
+		request.get(`${_options.game_api_url}/transactions/by_block?block=${block_num}`, (e, r, data) => {
+			let resp = tryParse(data);
+
+			if(resp && Array.isArray(resp))
+				resolve(resp);
+			else
+				reject(e);
+		});
+	});
 }
 
 function getCurrency(amount) { return amount.substr(amount.indexOf(' ') + 1); }
@@ -62,5 +90,7 @@ module.exports = {
 	log,
 	timeout,
 	tryParse,
-	getCurrency
+	getCurrency,
+	getHeadBlockNum,
+	getBlock
 }

@@ -1,6 +1,6 @@
 {
   "name": "@splinterlands/external-bridge",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Library to bridge transactions from an external blockchain to Splinterlands",
   "main": "external-bridge.js",
   "scripts": {
@@ -9,8 +9,9 @@
   "author": "yabapmatt",
   "license": "MIT",
   "dependencies": {
-    "@splinterlands/hive-interface": "^1.2.4",
+    "@splinterlands/hive-interface": "^2.0.0",
     "@splinterlands/pg-querybuilder": "^1.0.2",
+    "request": "^2.88.2",
     "ws": "^7.2.3"
   }
 }

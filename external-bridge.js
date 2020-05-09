@@ -1,27 +1,33 @@
 const utils = require('./utils');
-const socket = require('./socket');
+const streamer = require('./stream');
 const db = require('@splinterlands/pg-querybuilder');
-const hive = require('@splinterlands/hive-interface');
+const interface = require('@splinterlands/hive-interface');
+
+let hive = null;
 
 let _options = {
 	logging_level: 3,
 	rpc_error_limit: 20,
 	rpc_nodes: ["https://api.steemit.com", "https://seed.steemmonsters.com", "https://steemd.minnowsupportproject.org"],
 	ws_url: "http://localhost:1234",
+	state_file_name: 'sl-state.json',
+	game_api_url: 'http://localhost:3000',
 	prefix: "dev-sm_"
 };
 
 function init(options) {
 	_options = Object.assign(_options, options);
 	utils.set_options(_options);
-	hive.init(_options);
+	hive = new interface.Hive(_options);
 
 	if(_options.connection)
 		db.init({ connection: _options.connection });
 }
 
-function stream(name, on_tx, ops) {
-	socket.startClient(_options.ws_url, name, on_tx, ops);
+function stream(on_tx, types) {
+	_options.types = types;
+	streamer.start(on_tx, _options);
+	//socket.startClient(_options.ws_url, name, on_tx, ops);
 }
 
 async function processPurchase(purchase_id, payment) {
