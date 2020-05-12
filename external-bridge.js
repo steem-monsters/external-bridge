@@ -27,7 +27,6 @@ function init(options) {
 function stream(on_tx, types) {
 	_options.types = types;
 	streamer.start(on_tx, _options);
-	//socket.startClient(_options.ws_url, name, on_tx, ops);
 }
 
 async function processPurchase(purchase_id, payment) {

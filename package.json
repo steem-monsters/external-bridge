@@ -11,7 +11,6 @@
   "dependencies": {
     "@splinterlands/hive-interface": "^2.0.0",
     "@splinterlands/pg-querybuilder": "^1.0.2",
-    "request": "^2.88.2",
-    "ws": "^7.2.3"
+    "request": "^2.88.2"
   }
 }
