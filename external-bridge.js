@@ -103,8 +103,18 @@ async function tournamentPayment(tournament_id, amount, currency) {
 	});
 }
 
-async function tournamentEntry(tournament_id, player, amount, currency) {
-	let data = { tournament_id, player, payment: `${amount} ${currency}` };
+async function tournamentEntry(tournament_id, player, amount, currency, signed_pw, captcha_token) {
+	let data = { 
+		tournament_id,
+		player,
+		payment: `${amount} ${currency}`
+	};
+	
+	if(signed_pw)
+		data.signed_pw = signed_pw;
+
+	if(captcha_token)
+		data.captcha_token = captcha_token;
 	
 	return new Promise((resolve, reject) => {
 		try {
