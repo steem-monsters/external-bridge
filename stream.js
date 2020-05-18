@@ -38,10 +38,11 @@ async function getNextBlock(last_block) {
 	// If we have a new block, process it
 	while(head_block > last_block) {
 		try {
-			await processBlock(++last_block);
+			await processBlock(last_block);
 			saveState(last_block);
+			last_block++;
 		} catch (err) {
-			utils.log(`Error loading block: ${last_block + 1}, Error: ${err}!`, 1, 'Red');
+			utils.log(`Error loading block: ${last_block}, Error: ${err}!`, 1, 'Red');
 			break;
 		}
 	}
