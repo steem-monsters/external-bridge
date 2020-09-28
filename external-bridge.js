@@ -8,7 +8,7 @@ let hive = null;
 let _options = {
 	logging_level: 3,
 	rpc_error_limit: 20,
-	rpc_nodes: ["https://api.steemit.com", "https://seed.steemmonsters.com", "https://steemd.minnowsupportproject.org"],
+	rpc_nodes: ["https://api.hive.blog", "https://anyx.io", "https://hived.splinterlands.com"],
 	ws_url: "http://localhost:1234",
 	state_file_name: 'sl-state.json',
 	game_api_url: 'http://localhost:3000',
