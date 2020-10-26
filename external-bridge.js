@@ -56,6 +56,10 @@ async function processPurchase(purchase_id, payment) {
 }
 
 async function sendDec(to, qty) {
+	return await sendToken(to, 'DEC', qty);
+}
+
+async function sendToken(to, token, qty) {
 	return new Promise((resolve, reject) => {
 		if(!_options.account)
 			return reject({ error: `Error: Property "account" missing from the "options" object.` });
@@ -63,7 +67,7 @@ async function sendDec(to, qty) {
 		if(!_options.active_key)
 			return reject({ error: `Error: Property "active_key" missing from the "options" object.` });
 
-		let data = { to, qty, token: 'DEC' };
+		let data = { to, qty, token };
 
 		try {
 			hive.custom_json(`${_options.prefix}token_transfer`, data, _options.account, _options.active_key, true)
@@ -125,4 +129,4 @@ async function tournamentEntry(tournament_id, player, amount, currency, signed_p
 	});
 }
 
-module.exports = { init, stream, sendDec, sendPacks, tournamentPayment, tournamentEntry, processPurchase };
+module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase };
