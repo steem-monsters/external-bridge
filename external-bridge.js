@@ -22,6 +22,30 @@ function init(options) {
 
 	if(_options.connection)
 		db.init({ connection: _options.connection });
+
+	// Set up the API if enabled
+	if(_options.api) {
+		const app = require('express')();
+
+		app.use(function(req, res, next) {
+			res.header("Access-Control-Allow-Origin", "*");
+			res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, X-CSRF-Token, Content-Type, Accept");
+			res.header("X-Frame-Options", "sameorigin")			
+			next();
+		});
+
+		app.listen(_options.api.port, () => utils.log(`Bridge status API running on port: ${_options.api.port}`));
+		app.get('/status', getStatus);
+	}
+}
+
+async function getStatus(req, res) {
+	let status = { splinterlands: { last_block: streamer.lastBlock() } };
+
+	if(_options.api.get_status)
+		status.external = await _options.api.get_status();
+
+	res.json(status);
 }
 
 function stream(on_tx, types) {

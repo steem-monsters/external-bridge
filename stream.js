@@ -2,6 +2,7 @@ const fs = require('fs');
 const utils = require('./utils');
 
 let cb = null;
+let _last_block = 0;
 let _options = {
 	state_file_name: 'sl-state.json',
 	game_api_url: 'http://localhost:3000'
@@ -80,6 +81,8 @@ async function loadState() {
 }
 
 function saveState(last_block) {
+	_last_block = last_block;
+
   // Save the last block read to disk
   fs.writeFile(_options.state_file_name, JSON.stringify({ last_block }), function (err) {
     if (err)
@@ -87,4 +90,6 @@ function saveState(last_block) {
   });
 }
 
-module.exports = { start };
+function lastBlock() { return _last_block; }
+
+module.exports = { start, lastBlock };
