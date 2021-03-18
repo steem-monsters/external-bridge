@@ -40,7 +40,7 @@ function init(options) {
 }
 
 async function getStatus(req, res) {
-	let status = { splinterlands: { last_block: streamer.lastBlock() } };
+	let status = { splinterlands: streamer.getStatus() };
 
 	if(_options.api.get_status)
 		status.external = await _options.api.get_status();
@@ -153,4 +153,30 @@ async function tournamentEntry(tournament_id, player, amount, currency, signed_p
 	});
 }
 
-module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase };
+async function lookupTransaction(id, chain, client) {
+	if(chain)
+		chain = chain.toLowerCase();
+
+	return await db.lookupSingle('website.external_transactions', { id, chain }, client);
+}
+
+async function logTransaction(id, chain, block_num, type, token, amount, from, to, data, result, success, bridge_chain, bridge_tx) {
+	return await db.insert('website.external_transactions', {
+		chain: chain ? chain.toLowerCase() : chain,
+		id,
+		block_num,
+		created_date: new Date(),
+		type,
+		token,
+		amount,
+		from_address: from,
+		to_address: to,
+		data: data && typeof data == 'object' ? JSON.stringify(data) : data,
+		success,
+		result: result && typeof result == 'object' ? JSON.stringify(result) : result,
+		bridge_chain,
+		bridge_tx
+	});
+}
+
+module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase, lookupTransaction, logTransaction };

@@ -2,7 +2,8 @@ const fs = require('fs');
 const utils = require('./utils');
 
 let cb = null;
-let _last_block = 0;
+let _last_block = null;
+let _is_streaming = false;
 let _options = {
 	state_file_name: 'sl-state.json',
 	game_api_url: 'http://localhost:3000'
@@ -13,6 +14,7 @@ async function start(callback, options) {
 	_options = Object.assign(_options, options);
 	let last_block = await loadState();
 	utils.log(`Streamer starting from block: ${last_block || 'HEAD'}. Op Types: [${!options.types || options.types.length == 0 ? 'All' : options.types}]`);
+	_is_streaming = true;
 	getNextBlock(last_block);
 }
 
@@ -90,6 +92,6 @@ function saveState(last_block) {
   });
 }
 
-function lastBlock() { return _last_block; }
+function getStatus() { return { streaming: _is_streaming, last_block: _last_block }; }
 
-module.exports = { start, lastBlock };
+module.exports = { start, getStatus };
