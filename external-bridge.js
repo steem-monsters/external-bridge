@@ -67,7 +67,7 @@ async function processPurchase(purchase_id, payment) {
 			return reject({ error: `Invalid currency sent. Expected ${purchase.currency} but got ${currency}.` });
 
 		// Make sure the payment amount is enough!
-		if(amount < parseFloat(purchase.ext_currency_amount))
+		if(amount * 1.02 < parseFloat(purchase.ext_currency_amount))
 			return reject({ error: `Payment was less than the required amount of: ${purchase.ext_currency_amount} ${currency}` });
 
 		try {
@@ -79,11 +79,11 @@ async function processPurchase(purchase_id, payment) {
 	});
 }
 
-async function sendDec(to, qty) {
-	return await sendToken(to, 'DEC', qty);
+async function sendDec(to, qty, account, active_key) {
+	return await sendToken(to, 'DEC', qty, account, active_key);
 }
 
-async function sendToken(to, token, qty) {
+async function sendToken(to, token, qty, account = _options.account, active_key = _options.active_key) {
 	return new Promise((resolve, reject) => {
 		if(!_options.account)
 			return reject({ error: `Error: Property "account" missing from the "options" object.` });
@@ -94,14 +94,14 @@ async function sendToken(to, token, qty) {
 		let data = { to, qty, token };
 
 		try {
-			hive.custom_json(`${_options.prefix}token_transfer`, data, _options.account, _options.active_key, true)
+			hive.custom_json(`${_options.prefix}token_transfer`, data, account, active_key, true)
 				.then(resolve)
 				.catch(reject);
 		} catch (err) { reject(err); }
 	});
 }
 
-async function sendPacks(to, qty, edition) {
+async function sendPacks(to, qty, edition, account = _options.account, active_key = _options.active_key) {
 	return new Promise((resolve, reject) => {
 		if(!_options.account)
 			return reject({ error: `Error: Property "account" missing from the "options" object.` });
@@ -112,26 +112,26 @@ async function sendPacks(to, qty, edition) {
 		let data = { to, qty, edition, token: 'DEC' };
 
 		try {
-			hive.custom_json(`${_options.prefix}gift_packs`, data, _options.account, _options.active_key, true)
+			hive.custom_json(`${_options.prefix}gift_packs`, data, account, active_key, true)
 				.then(resolve)
 				.catch(reject);
 		} catch (err) { reject(err); }
 	});
 }
 
-async function tournamentPayment(tournament_id, amount, currency) {
+async function tournamentPayment(tournament_id, amount, currency, account = _options.game_account, active_key = _options.game_account_active_key) {
 	let data = { tournament_id, payment: `${amount} ${currency}` };
 
 	return new Promise((resolve, reject) => {
 		try {
-			hive.custom_json(`${_options.prefix}tournament_payment`, data, _options.game_account, _options.game_account_active_key, true)
+			hive.custom_json(`${_options.prefix}tournament_payment`, data, account, active_key, true)
 				.then(resolve)
 				.catch(reject);
 		} catch (err) { reject(err); }
 	});
 }
 
-async function tournamentEntry(tournament_id, player, amount, currency, signed_pw, captcha_token) {
+async function tournamentEntry(tournament_id, player, amount, currency, signed_pw, captcha_token, account = _options.game_account, active_key = _options.game_account_active_key) {
 	let data = { 
 		tournament_id,
 		player,
@@ -146,7 +146,7 @@ async function tournamentEntry(tournament_id, player, amount, currency, signed_p
 	
 	return new Promise((resolve, reject) => {
 		try {
-			hive.custom_json(`${_options.prefix}enter_tournament`, data, _options.game_account, _options.game_account_active_key, true)
+			hive.custom_json(`${_options.prefix}enter_tournament`, data, account, active_key, true)
 				.then(resolve)
 				.catch(reject);
 		} catch (err) { reject(err); }
