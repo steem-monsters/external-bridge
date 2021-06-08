@@ -1,5 +1,5 @@
 const utils = require('./utils');
-const streamer = require('./stream');
+const streamer = require('@steem-monsters/splinterlands-tx-streamer');
 const db = require('@splinterlands/pg-querybuilder');
 const interface = require('@splinterlands/hive-interface');
 
