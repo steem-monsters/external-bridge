@@ -70,6 +70,10 @@ async function processPurchase(purchase_id, payment) {
 		if(amount * 1.02 < parseFloat(purchase.ext_currency_amount))
 			return reject({ error: `Payment was less than the required amount of: ${purchase.ext_currency_amount} ${currency}` });
 
+		// The "steemmonsters" account can send any amount of HIVE to complete a purchase, but we limit it to 10k HIVE because it might not have enough in the acct otherwise
+		if(parseFloat(purchase.payment) > 10000)
+			purchase.payment = '10000.000 HIVE';
+
 		try {
 			// Make the purchase
 			hive.transfer(_options.account, _options.account, purchase.payment, purchase.uid, _options.active_key)
