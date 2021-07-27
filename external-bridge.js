@@ -183,4 +183,8 @@ async function logTransaction(id, chain, block_num, type, token, amount, from, t
 	});
 }
 
-module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase, lookupTransaction, logTransaction };
+async function customJson(id, json, account, key, use_active) {
+	return hive.custom_json(id, json, account, key, use_active);
+}
+
+module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase, lookupTransaction, logTransaction, customJson };
