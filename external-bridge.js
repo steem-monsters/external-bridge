@@ -164,6 +164,26 @@ async function lookupTransaction(id, chain, client) {
 	return await db.lookupSingle('website.external_transactions', { id, chain }, client);
 }
 
+async function logGameTransaction(tx, ext_chain) {
+	const data = utils.tryParse(tx.data);
+
+	// Record the transaction in the database
+	return logTransaction(
+		tx.id,
+		'splinterlands',
+		tx.block_num,
+		tx.type,
+		data.token,
+		data.qty,
+		tx.player,
+		data.to,
+		data,
+		null,
+		false,
+		ext_chain,
+		null);
+}
+
 async function logTransaction(id, chain, block_num, type, token, amount, from, to, data, result, success, bridge_chain, bridge_tx) {
 	return await db.insert('website.external_transactions', {
 		chain: chain ? chain.toLowerCase() : chain,
@@ -183,8 +203,16 @@ async function logTransaction(id, chain, block_num, type, token, amount, from, t
 	});
 }
 
+async function updateExternalTx(tx_id, chain, success, result, bridge_tx) {
+	return db.updateSingle('website.external_transactions', { 
+		success, 
+		result: result && typeof result == 'object' ? JSON.stringify(result) : result,
+		bridge_tx
+	}, { id: tx_id, chain });
+}
+
 async function customJson(id, json, account, key, use_active) {
 	return hive.custom_json(id, json, account, key, use_active);
 }
 
-module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase, lookupTransaction, logTransaction, customJson };
+module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase, lookupTransaction, logTransaction, logGameTransaction, updateExternalTx, customJson };
