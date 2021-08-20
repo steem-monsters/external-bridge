@@ -211,8 +211,12 @@ async function updateExternalTx(tx_id, chain, success, result, bridge_tx) {
 	}, { id: tx_id, chain });
 }
 
+async function logExternalTxError(tx_id, chain, err) {
+	return db.updateSingle('website.external_transactions', { result: `Error: ${err && err.message ? err.message : err}` }, { id: tx_id, chain });
+}
+
 async function customJson(id, json, account, key, use_active) {
 	return hive.custom_json(id, json, account, key, use_active);
 }
 
-module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase, lookupTransaction, logTransaction, logGameTransaction, updateExternalTx, customJson };
+module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase, lookupTransaction, logTransaction, logGameTransaction, updateExternalTx, logExternalTxError, customJson };
