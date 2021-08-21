@@ -167,6 +167,18 @@ async function lookupTransaction(id, chain, client) {
 async function logGameTransaction(tx, ext_chain) {
 	const data = utils.tryParse(tx.data);
 
+	if(!data) {
+		utils.log(`Cannot parse data for tx ${tx.id}`, 1, 'Red');
+		return;
+	}
+
+	if(!data.token && data.edition != undefined) {
+		data.token = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'CHAOS'][data.edition];
+	} else if (data.cards) {
+		data.token = 'CARD';
+		data.qty = data.cards.length;
+	}
+
 	// Record the transaction in the database
 	return logTransaction(
 		tx.id,
@@ -182,6 +194,10 @@ async function logGameTransaction(tx, ext_chain) {
 		false,
 		ext_chain,
 		null);
+}
+
+async function logRefundTx(tx_id, chain, refund_tx) {
+	return db.updateSingle('website.external_transactions', { refund_tx }, { id: tx_id, chain });
 }
 
 async function logTransaction(id, chain, block_num, type, token, amount, from, to, data, result, success, bridge_chain, bridge_tx) {
@@ -219,4 +235,20 @@ async function customJson(id, json, account, key, use_active) {
 	return hive.custom_json(id, json, account, key, use_active);
 }
 
-module.exports = { init, stream, sendDec, sendToken, sendPacks, tournamentPayment, tournamentEntry, processPurchase, lookupTransaction, logTransaction, logGameTransaction, updateExternalTx, logExternalTxError, customJson };
+module.exports = {
+	init, 
+	stream, 
+	sendDec, 
+	sendToken, 
+	sendPacks, 
+	tournamentPayment, 
+	tournamentEntry, 
+	processPurchase, 
+	lookupTransaction, 
+	logTransaction, 
+	logGameTransaction, 
+	logRefundTx, 
+	updateExternalTx, 
+	logExternalTxError, 
+	customJson
+};
