@@ -89,10 +89,10 @@ async function sendDec(to, qty, account, active_key) {
 
 async function sendToken(to, token, qty, account = _options.account, active_key = _options.active_key) {
 	return new Promise((resolve, reject) => {
-		if(!_options.account)
+		if(!account)
 			return reject({ error: `Error: Property "account" missing from the "options" object.` });
 
-		if(!_options.active_key)
+		if(!active_key)
 			return reject({ error: `Error: Property "active_key" missing from the "options" object.` });
 
 		let data = { to, qty, token };
@@ -173,7 +173,7 @@ async function logGameTransaction(tx, ext_chain) {
 	}
 
 	if(!data.token && data.edition != undefined) {
-		data.token = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'CHAOS'][data.edition];
+		data.token = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS'][data.edition];
 	} else if (data.cards) {
 		data.token = 'CARD';
 		data.qty = data.cards.length;
