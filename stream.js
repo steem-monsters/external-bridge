@@ -6,13 +6,15 @@ let _last_block = null;
 let _is_streaming = false;
 let _options = {
 	state_file_name: 'sl-state.json',
+	load_state: loadState,
+	save_state: saveState,
 	game_api_url: 'http://localhost:3000'
 };
 
 async function start(callback, options) {
 	cb = callback;
 	_options = Object.assign(_options, options);
-	let last_block = await loadState();
+	let last_block = await _options.load_state();
 	utils.log(`Streamer starting from block: ${last_block || 'HEAD'}. Op Types: [${!options.types || options.types.length == 0 ? 'All' : options.types}]`);
 	_is_streaming = true;
 	getNextBlock(last_block);
@@ -42,7 +44,7 @@ async function getNextBlock(last_block) {
 	while(head_block > last_block) {
 		try {
 			await processBlock(last_block);
-			saveState(last_block);
+			_options.save_state(last_block);
 			last_block++;
 		} catch (err) {
 			utils.log(`Error loading block: ${last_block}, Error: ${err}!`, 1, 'Red');
