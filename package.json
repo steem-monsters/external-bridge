@@ -10,6 +10,7 @@
   "license": "MIT",
   "repository": "https://github.com/steem-monsters/external-bridge",
   "engines": {
+    "node": ">=14",
     "npm": "6.x"
   },
   "dependencies": {
