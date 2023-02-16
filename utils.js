@@ -1,4 +1,4 @@
-const request = require("request");
+const axios = require('axios');
 
 let _options = { logging_level: 3 };
 
@@ -7,43 +7,37 @@ function set_options(options) {
 }
 
 async function getHeadBlockNum() {
-	return new Promise((resolve, reject) => {
-		request.get(`${_options.game_api_url}/last_block`, (e, r, data) => {
-			let resp = tryParse(data);
+	const res = await axios.get(`${_options.game_api_url}/last_block}`);
 
-			if(resp && resp.last_block)
-				resolve(resp.last_block);
-			else
-				reject(e);
-		});
-	});
+	if (res.data && res.data.last_block) {
+		return res.data.last_block;
+	}
+
+	throw new Error(null);
 }
 
 async function getBlock(block_num) {
-	return new Promise((resolve, reject) => {
-		request.get(`${_options.game_api_url}/transactions/by_block?block=${block_num}`, (e, r, data) => {
-			let resp = tryParse(data);
+	const res = await axios.get(`${_options.game_api_url}/transactions/by_block`, { params: { block: block_num }});
 
-			if(resp && Array.isArray(resp))
-				resolve(resp);
-			else
-				reject(e);
-		});
-	});
+	if (res.data && Array.isArray(res.data)) {
+		return res.data;
+	}
+
+	throw new Error(null);
 }
 
 function getCurrency(amount) { return amount.substr(amount.indexOf(' ') + 1); }
 
 // Logging levels: 1 = Error, 2 = Warning, 3 = Info, 4 = Debug
-function log(msg, level, color) { 
+function log(msg, level, color) {
   if(!level)
 		level = 0;
-		
+
 	if(color && log_colors[color])
 		msg = log_colors[color] + msg + log_colors.Reset;
 
   if(level <= _options.logging_level)
-    console.log(new Date().toLocaleString() + ' - ' + msg); 
+    console.log(new Date().toLocaleString() + ' - ' + msg);
 }
 
 var log_colors = {
