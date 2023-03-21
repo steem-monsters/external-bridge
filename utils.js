@@ -1,4 +1,4 @@
-const request = require("request");
+const axios = require('axios');
 
 let _options = { logging_level: 3 };
 
@@ -6,44 +6,99 @@ function set_options(options) {
 	_options = Object.assign(_options, options);
 }
 
-async function getHeadBlockNum() {
-	return new Promise((resolve, reject) => {
-		request.get(`${_options.game_api_url}/last_block`, (e, r, data) => {
-			let resp = tryParse(data);
+/**
+ * Fetches the head block number of the validator
+ * @params url {string} Url of the game api
+ * @returns {Promise<number | undefined>}
+ */
+async function getHeadBlockNumValidator(url) {
+	const res = await axios.get(`${url}/status`);
 
-			if(resp && resp.last_block)
-				resolve(resp.last_block);
-			else
-				reject(e);
-		});
-	});
+	if (res.data && res.data.last_block) {
+		const last_block = parseInt(res.data.last_block, 10);
+		return isNaN(last_block) ? undefined : last_block;
+	}
+
+	throw new Error(null);
 }
 
-async function getBlock(block_num) {
-	return new Promise((resolve, reject) => {
-		request.get(`${_options.game_api_url}/transactions/by_block?block=${block_num}`, (e, r, data) => {
-			let resp = tryParse(data);
+/**
+ * Fetches the head block number of the block processor
+ * @params url {string} Url of the game api
+ * @returns {Promise<number | undefined>}
+ */
+async function getHeadBlockNum(url) {
+	const res = await axios.get(`${url}/last_block`);
 
-			if(resp && Array.isArray(resp))
-				resolve(resp);
-			else
-				reject(e);
-		});
-	});
+	if (res.data && res.data.last_block) {
+		const last_block = parseInt(res.data.last_block, 10);
+		return isNaN(last_block) ? undefined : last_block;
+	}
+
+	throw new Error(null);
+}
+
+/**
+ * @typedef {{
+ *     id: string,
+ *     block_id: string,
+ *     prev_block_id: string,
+ *     type: string,
+ *     player: string,
+ *     data: string,
+ *     success: boolean,
+ *     error: null | string,
+ *     block_num: number,
+ *     created_date: string,
+ *     result: string,
+ * }} Transaction
+ */
+
+
+/**
+ * Fetches the specified block from the block processor
+ * @param url {string} Url of the game api
+ * @param block_num {number}
+ * @returns {Promise<Transaction[]>}
+ */
+async function getBlockValidator(url, block_num) {
+	const res = await axios.get(`${url}/transactions/${block_num}`);
+
+	if (res.data && Array.isArray(res.data)) {
+		return res.data;
+	}
+
+	throw new Error(null);
+}
+
+/**
+ * Fetches the specified block from the block processor
+ * @param url {string} Url of the game api
+ * @param block_num {number}
+ * @returns {Promise<Transaction[]>}
+ */
+async function getBlock(url, block_num) {
+	const res = await axios.get(`${url}/transactions/by_block`, { params: { block: block_num }});
+
+	if (res.data && Array.isArray(res.data)) {
+		return res.data;
+	}
+
+	throw new Error(null);
 }
 
 function getCurrency(amount) { return amount.substr(amount.indexOf(' ') + 1); }
 
 // Logging levels: 1 = Error, 2 = Warning, 3 = Info, 4 = Debug
-function log(msg, level, color) { 
+function log(msg, level, color) {
   if(!level)
 		level = 0;
-		
+
 	if(color && log_colors[color])
 		msg = log_colors[color] + msg + log_colors.Reset;
 
   if(level <= _options.logging_level)
-    console.log(new Date().toLocaleString() + ' - ' + msg); 
+    console.log(new Date().toLocaleString() + ' - ' + msg);
 }
 
 var log_colors = {
@@ -91,6 +146,8 @@ module.exports = {
 	timeout,
 	tryParse,
 	getCurrency,
+	getHeadBlockNumValidator,
 	getHeadBlockNum,
-	getBlock
+	getBlockValidator,
+	getBlock,
 }

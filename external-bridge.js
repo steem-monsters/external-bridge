@@ -1,254 +1,135 @@
-const utils = require('./utils');
-const streamer = require('./stream');
-const db = require('@splinterlands/pg-querybuilder');
-const interface = require('@splinterlands/hive-interface');
+/**
+ * @typedef {{
+ *     rpc_error_limit: number,
+ *     rpc_nodes: string[],
+ *     ws_url: string,
+ *     state_file_name: string,
+ *     games: {
+ *      api_url: string,
+ *      name: string,
+ *      types: ((type: string) => boolean) | string[],
+ *      cb: TransactionCallback,
+ *      state_file_name?: string,
+ *      is_validator: boolean,
+ *     }[],
+ *     api: {
+ *         port: number,
+ *         external_status?: () => Promise<any>
+ *     } | undefined,
+ * }} ExternalBridgeOptions
+ */
+const utils = require("./utils");
+const Stream = require("./stream");
 
-let hive = null;
+const DEFAULT_OPTIONS = Object.freeze({
+    rpc_error_limit: 20,
+    rpc_nodes: ["https://api.hive.blog", "https://anyx.io", "https://hived.splinterlands.com"],
+    ws_url: "http://localhost:1234",
+    state_file_name: "sl-state.json",
+    games: [],
+    prefix: "dev-sm_",
+});
 
-let _options = {
-	logging_level: 3,
-	rpc_error_limit: 20,
-	rpc_nodes: ["https://api.hive.blog", "https://anyx.io", "https://hived.splinterlands.com"],
-	ws_url: "http://localhost:1234",
-	state_file_name: 'sl-state.json',
-	game_api_url: 'http://localhost:3000',
-	prefix: "dev-sm_"
-};
+class ExternalBridge {
+    /**
+     * @type {Map<string, Stream>}
+     */
+    #streams;
+    /**
+     * @type {ExternalBridgeOptions}
+     */
+    #options;
+    /**
+     * @type {Promise<any>[]}
+     */
+    #handles;
 
-function init(options) {
-	_options = Object.assign(_options, options);
-	utils.set_options(_options);
-	hive = new interface.Hive(_options);
+    /**
+     * @param options {Partial<ExternalBridgeOptions>}
+     */
+    constructor(options) {
+        this.#options = {...DEFAULT_OPTIONS, ...options};
 
-	if(_options.connection)
-		db.init({ connection: _options.connection });
+        if (this.#options.api) {
+            const app = require('express')();
 
-	// Set up the API if enabled
-	if(_options.api) {
-		const app = require('express')();
+            app.use(function (req, res, next) {
+                res.header("Access-Control-Allow-Origin", "*");
+                res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, X-CSRF-Token, Content-Type, Accept");
+                res.header("X-Frame-Options", "sameorigin")
+                next();
+            });
 
-		app.use(function(req, res, next) {
-			res.header("Access-Control-Allow-Origin", "*");
-			res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, X-CSRF-Token, Content-Type, Accept");
-			res.header("X-Frame-Options", "sameorigin")			
-			next();
-		});
+            app.listen(this.#options.api.port, () => utils.log(`Bridge status API running on port: ${this.#options.api.port}`));
+            app.get('/status', (req, res, _next) => this.getStatus(req, res));
+        }
 
-		app.listen(_options.api.port, () => utils.log(`Bridge status API running on port: ${_options.api.port}`));
-		app.get('/status', getStatus);
-	}
+        this.#streams = new Map();
+
+        for (const game of this.#options.games) {
+            if (this.#streams.has(game.name)) {
+                throw new Error(`Duplicate game name ${game.name}`);
+            }
+
+            if (game.name === "external") {
+                throw new Error(`Illegal game name ${game.name}`);
+            }
+
+            const s = new Stream(game.cb, {
+                types: game.types,
+                state_file_name: game.state_file_name ?? `${game.name}.json`,
+                game_api_url: game.api_url,
+                is_validator: game.is_validator,
+            })
+            this.#streams.set(game.name, s);
+        }
+
+        this.#handles = [];
+    }
+
+    stream() {
+        if (this.#handles.length > 0) {
+            // Already streaming
+            return;
+        }
+
+        for (const [name, s] of this.#streams.entries()) {
+            utils.log(`Starting stream for ${name}`, 1);
+            const handle = s.loop().then(() => {
+                utils.log(`Stream ${name} has stopped`, 1);
+            }, (err) => {
+                utils.log(`Stream ${name} encountered an error and has stopped. ${err}`, 1, 'Red');
+            });
+            this.#handles.push(handle);
+        }
+    }
+
+    async stop() {
+        for (const [name, s] of this.#streams.entries()) {
+            utils.log(`Stopping stream ${name}`);
+            s.stop();
+        }
+
+        await Promise.all(this.#handles);
+    }
+
+    /**
+     *
+     * @param req {import('express').Request}
+     * @param res {import('express').Response}
+     * @returns {Promise<void>}
+     */
+    async getStatus(req, res) {
+        let status = {};
+
+        for (const [name, s] of this.#streams.entries()) {
+            status[name] = s.getStatus();
+        }
+
+        status.external = await this.#options.api?.external_status?.();
+
+        res.json(status);
+    }
 }
 
-async function getStatus(req, res) {
-	let status = { splinterlands: streamer.getStatus() };
-
-	if(_options.api.get_status)
-		status.external = await _options.api.get_status();
-
-	res.json(status);
-}
-
-function stream(on_tx, types) {
-	_options.types = types;
-	streamer.start(on_tx, _options);
-}
-
-async function processPurchase(purchase_id, payment) {
-	return new Promise(async (resolve, reject) => {
-		let purchase = await db.lookupSingle('purchases', { uid: purchase_id });
-
-		if(!purchase)
-			return reject({ error: `Purchase [${purchase_id}] not found.` });
-
-		let amount = parseFloat(payment);
-		let currency = utils.getCurrency(payment);
-
-		if(currency != purchase.currency)
-			return reject({ error: `Invalid currency sent. Expected ${purchase.currency} but got ${currency}.` });
-
-		// Make sure the payment amount is enough!
-		if(amount * 1.02 < parseFloat(purchase.ext_currency_amount))
-			return reject({ error: `Payment was less than the required amount of: ${purchase.ext_currency_amount} ${currency}` });
-
-		// The "steemmonsters" account can send any amount of HIVE to complete a purchase, but we limit it to 10k HIVE because it might not have enough in the acct otherwise
-		if(parseFloat(purchase.payment) > 10000)
-			purchase.payment = '10000.000 HIVE';
-
-		try {
-			// Make the purchase
-			hive.transfer(_options.account, _options.account, purchase.payment, purchase.uid, _options.active_key)
-				.then(resolve)
-				.catch(reject);
-		} catch (err) { reject(err); }
-	});
-}
-
-async function sendDec(to, qty, account, active_key) {
-	return await sendToken(to, 'DEC', qty, account, active_key);
-}
-
-async function sendToken(to, token, qty, account = _options.account, active_key = _options.active_key) {
-	return new Promise((resolve, reject) => {
-		if(!account)
-			return reject({ error: `Error: Property "account" missing from the "options" object.` });
-
-		if(!active_key)
-			return reject({ error: `Error: Property "active_key" missing from the "options" object.` });
-
-		let data = { to, qty, token };
-
-		try {
-			hive.custom_json(`${_options.prefix}token_transfer`, data, account, active_key, true)
-				.then(resolve)
-				.catch(reject);
-		} catch (err) { reject(err); }
-	});
-}
-
-async function sendPacks(to, qty, edition, account = _options.account, active_key = _options.active_key) {
-	return new Promise((resolve, reject) => {
-		if(!_options.account)
-			return reject({ error: `Error: Property "account" missing from the "options" object.` });
-
-		if(!_options.active_key)
-			return reject({ error: `Error: Property "active_key" missing from the "options" object.` });
-
-		let data = { to, qty, edition, token: 'DEC' };
-
-		try {
-			hive.custom_json(`${_options.prefix}gift_packs`, data, account, active_key, true)
-				.then(resolve)
-				.catch(reject);
-		} catch (err) { reject(err); }
-	});
-}
-
-async function tournamentPayment(tournament_id, amount, currency, account = _options.game_account, active_key = _options.game_account_active_key) {
-	let data = { tournament_id, payment: `${amount} ${currency}` };
-
-	return new Promise((resolve, reject) => {
-		try {
-			hive.custom_json(`${_options.prefix}tournament_payment`, data, account, active_key, true)
-				.then(resolve)
-				.catch(reject);
-		} catch (err) { reject(err); }
-	});
-}
-
-async function tournamentEntry(tournament_id, player, amount, currency, signed_pw, captcha_token, account = _options.game_account, active_key = _options.game_account_active_key) {
-	let data = { 
-		tournament_id,
-		player,
-		payment: `${amount} ${currency}`
-	};
-	
-	if(signed_pw)
-		data.signed_pw = signed_pw;
-
-	if(captcha_token)
-		data.captcha_token = captcha_token;
-	
-	return new Promise((resolve, reject) => {
-		try {
-			hive.custom_json(`${_options.prefix}enter_tournament`, data, account, active_key, true)
-				.then(resolve)
-				.catch(reject);
-		} catch (err) { reject(err); }
-	});
-}
-
-async function lookupTransaction(id, chain, client) {
-	if(chain)
-		chain = chain.toLowerCase();
-
-	return await db.lookupSingle('website.external_transactions', { id, chain }, client);
-}
-
-async function logGameTransaction(tx, ext_chain) {
-	const data = utils.tryParse(tx.data);
-
-	if(!data) {
-		utils.log(`Cannot parse data for tx ${tx.id}`, 1, 'Red');
-		return;
-	}
-
-	if(!data.token && data.edition != undefined) {
-		data.token = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS', 'RIFT'][data.edition];
-	} else if (data.cards) {
-		data.token = 'CARD';
-		data.qty = data.cards.length;
-	}
-
-	// Record the transaction in the database
-	return logTransaction(
-		tx.id,
-		'splinterlands',
-		tx.block_num,
-		tx.type,
-		data.token,
-		data.qty,
-		tx.player,
-		data.to,
-		data,
-		null,
-		false,
-		ext_chain,
-		null);
-}
-
-async function logRefundTx(tx_id, chain, refund_tx) {
-	return db.updateSingle('website.external_transactions', { refund_tx }, { id: tx_id, chain });
-}
-
-async function logTransaction(id, chain, block_num, type, token, amount, from, to, data, result, success, bridge_chain, bridge_tx) {
-	return await db.insert('website.external_transactions', {
-		chain: chain ? chain.toLowerCase() : chain,
-		id,
-		block_num,
-		created_date: new Date(),
-		type,
-		token,
-		amount,
-		from_address: from,
-		to_address: to,
-		data: data && typeof data == 'object' ? JSON.stringify(data) : data,
-		success,
-		result: result && typeof result == 'object' ? JSON.stringify(result) : result,
-		bridge_chain,
-		bridge_tx
-	});
-}
-
-async function updateExternalTx(tx_id, chain, success, result, bridge_tx) {
-	return db.updateSingle('website.external_transactions', { 
-		success, 
-		result: result && typeof result == 'object' ? JSON.stringify(result) : result,
-		bridge_tx
-	}, { id: tx_id, chain });
-}
-
-async function logExternalTxError(tx_id, chain, err) {
-	return db.updateSingle('website.external_transactions', { result: `Error: ${err && err.message ? err.message : err}` }, { id: tx_id, chain });
-}
-
-async function customJson(id, json, account, key, use_active) {
-	return hive.custom_json(id, json, account, key, use_active);
-}
-
-module.exports = {
-	init, 
-	stream, 
-	sendDec, 
-	sendToken, 
-	sendPacks, 
-	tournamentPayment, 
-	tournamentEntry, 
-	processPurchase, 
-	lookupTransaction, 
-	logTransaction, 
-	logGameTransaction, 
-	logRefundTx, 
-	updateExternalTx, 
-	logExternalTxError, 
-	customJson
-};
+module.exports = ExternalBridge;
