@@ -1,6 +1,6 @@
 {
   "name": "@splinterlands/external-bridge",
-  "version": "2.0.0",
+  "version": "2.0.0-prerelease1",
   "description": "Library to bridge transactions from an external blockchain to Splinterlands",
   "main": "external-bridge.js",
   "scripts": {
