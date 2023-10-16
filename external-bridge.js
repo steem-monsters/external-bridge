@@ -173,7 +173,7 @@ async function logGameTransaction(tx, ext_chain) {
 	}
 
 	if(!data.token && data.edition != undefined) {
-		data.token = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS', 'RIFT'][data.edition];
+		data.token = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS', 'RIFT', 'NIGHTMARE', null, null, 'REBELLION'][data.edition];
 	} else if (data.cards) {
 		data.token = 'CARD';
 		data.qty = data.cards.length;
