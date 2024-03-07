@@ -123,7 +123,7 @@ async function sendPacks(to, qty, edition, account = _options.account, active_ke
 	});
 }
 
-async function tournamentPayment(tournament_id, amount, currency, account = _options.game_account, active_key = _options.game_account_active_key) {
+async function tournamentPayment(tournament_id, amount, currency, account = _options.escrow_account, active_key = _options.escrow_active_key) {
 	let data = { tournament_id, payment: `${amount} ${currency}` };
 
 	return new Promise((resolve, reject) => {
@@ -135,7 +135,7 @@ async function tournamentPayment(tournament_id, amount, currency, account = _opt
 	});
 }
 
-async function tournamentEntry(tournament_id, player, amount, currency, signed_pw, captcha_token, account = _options.game_account, active_key = _options.game_account_active_key) {
+async function tournamentEntry(tournament_id, player, amount, currency, signed_pw, captcha_token, account = _options.escrow_account, active_key = _options.escrow_active_key) {
 	let data = { 
 		tournament_id,
 		player,
