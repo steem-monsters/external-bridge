@@ -164,6 +164,25 @@ async function lookupTransaction(id, chain, client) {
 	return await db.lookupSingle('website.external_transactions', { id, chain }, client);
 }
 
+const CONCLAVE_PACK_TYPES = [
+	{
+		pack_type: 'standard',
+		symbol: 'ARCANA',
+	},
+	{
+		pack_type: 'legendary',
+		symbol: 'ARCANAL',
+	},
+	{
+		pack_type: 'alchemist',
+		symbol: 'ARCANAA',
+	},
+	{
+		pack_type: 'starter',
+		symbol: 'ARCANAS',
+	},
+];
+
 async function logGameTransaction(tx, ext_chain) {
 	const data = utils.tryParse(tx.data);
 
@@ -173,7 +192,13 @@ async function logGameTransaction(tx, ext_chain) {
 	}
 
 	if(!data.token && data.edition != undefined) {
-		data.token = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS', 'RIFT', 'NIGHTMARE', null, null, 'REBELLION'][data.edition];
+		const symbol = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS', 'RIFT', 'NIGHTMARE', null, null, 'REBELLION', null, CONCLAVE_PACK_TYPES][data.edition];
+		if (Array.isArray(symbol)) {
+			const foundToken = symbol.find(e => e.pack_type === data.type);
+			data.token = foundToken ? foundToken.symbol : null;
+		} else {
+			data.token = symbol;
+		}
 	} else if (data.cards) {
 		data.token = 'CARD';
 		data.qty = data.cards.length;
