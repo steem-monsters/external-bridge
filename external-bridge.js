@@ -105,7 +105,7 @@ async function sendToken(to, token, qty, account = _options.account, active_key 
 	});
 }
 
-async function sendPacks(to, qty, edition, account = _options.account, active_key = _options.active_key) {
+async function sendPacks(to, qty, edition, type, account = _options.account, active_key = _options.active_key) {
 	return new Promise((resolve, reject) => {
 		if(!_options.account)
 			return reject({ error: `Error: Property "account" missing from the "options" object.` });
@@ -113,7 +113,7 @@ async function sendPacks(to, qty, edition, account = _options.account, active_ke
 		if(!_options.active_key)
 			return reject({ error: `Error: Property "active_key" missing from the "options" object.` });
 
-		let data = { to, qty, edition, token: 'DEC' };
+		let data = { to, qty, edition, type };
 
 		try {
 			hive.custom_json(`${_options.prefix}gift_packs`, data, account, active_key, true)
@@ -194,7 +194,7 @@ async function logGameTransaction(tx, ext_chain) {
 	if(!data.token && data.edition != undefined) {
 		const symbol = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS', 'RIFT', 'NIGHTMARE', null, null, 'REBELLION', null, CONCLAVE_PACK_TYPES][data.edition];
 		if (Array.isArray(symbol)) {
-			const foundToken = symbol.find(e => e.pack_type === data.type);
+			const foundToken = symbol.find(t => t.pack_type === data.type);
 			data.token = foundToken ? foundToken.symbol : null;
 		} else {
 			data.token = symbol;
