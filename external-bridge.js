@@ -183,6 +183,13 @@ const CONCLAVE_PACK_TYPES = [
 	},
 ];
 
+const ESCALATION_PACK_TYPES = [
+	{
+		pack_type: 'standard',
+		symbol: 'ESCALATION',
+	},
+]
+
 async function logGameTransaction(tx, ext_chain) {
 	const data = utils.tryParse(tx.data);
 
@@ -192,7 +199,7 @@ async function logGameTransaction(tx, ext_chain) {
 	}
 
 	if(!data.token && data.edition != undefined) {
-		const symbol = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS', 'RIFT', 'NIGHTMARE', null, null, 'REBELLION', null, CONCLAVE_PACK_TYPES][data.edition];
+		const symbol = ['ALPHA', 'BETA', 'ORB', null, 'UNTAMED', 'DICE', 'GLADIUS', 'CHAOS', 'RIFT', 'NIGHTMARE', null, null, 'REBELLION', null, CONCLAVE_PACK_TYPES, null, null, null, ][data.edition];
 		if (Array.isArray(symbol)) {
 			const foundToken = symbol.find(t => t.pack_type === data.type);
 			data.token = foundToken ? foundToken.symbol : null;
