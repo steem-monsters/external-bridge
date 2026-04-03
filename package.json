@@ -11,7 +11,7 @@
   "dependencies": {
     "@splinterlands/hive-interface": "2.2.3",
     "@splinterlands/pg-querybuilder": "1.2.0",
-    "express": "4.17.1",
+    "express": "4.22.1",
     "request": "2.88.2"
   }
 }
