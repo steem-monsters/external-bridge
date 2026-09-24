@@ -4,7 +4,7 @@
   "description": "Library to bridge transactions from an external blockchain to Splinterlands",
   "main": "external-bridge.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/run.js"
   },
   "author": "yabapmatt",
   "license": "MIT",

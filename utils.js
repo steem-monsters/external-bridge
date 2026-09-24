@@ -7,29 +7,49 @@ function set_options(options) {
 }
 
 async function getHeadBlockNum() {
-	return new Promise((resolve, reject) => {
-		request.get(`${_options.game_api_url}/last_block`, (e, r, data) => {
-			let resp = tryParse(data);
+	let resp = await getJson(`${_options.game_api_url}/last_block`, 'last block');
+	if(resp && Number.isFinite(Number(resp.last_block)))
+		return Number(resp.last_block);
 
-			if(resp && resp.last_block)
-				resolve(resp.last_block);
-			else
-				reject(e);
+	throw new Error(`last block returned an unexpected response: ${preview(resp)}`);
+}
+
+async function getBlock(block_num) {
+	let resp = await getJson(`${_options.game_api_url}/transactions/by_block?block=${block_num}`, `block ${block_num}`);
+	if(Array.isArray(resp))
+		return resp;
+
+	throw new Error(`block ${block_num} returned an unexpected response: ${preview(resp)}`);
+}
+
+function getJson(url, description) {
+	return new Promise((resolve, reject) => {
+		request.get({ url, timeout: _options.request_timeout_ms || 15000 }, (error, response, data) => {
+			if(error)
+				return reject(new Error(`${description} request failed: ${error.message || error}`));
+
+			const statusCode = response && response.statusCode;
+			if(!statusCode || statusCode < 200 || statusCode >= 300)
+				return reject(new Error(`${description} returned HTTP ${statusCode || 'unknown'}: ${preview(data)}`));
+
+			try {
+				resolve(JSON.parse(data));
+			} catch(err) {
+				reject(new Error(`${description} returned invalid JSON: ${preview(data)}`));
+			}
 		});
 	});
 }
 
-async function getBlock(block_num) {
-	return new Promise((resolve, reject) => {
-		request.get(`${_options.game_api_url}/transactions/by_block?block=${block_num}`, (e, r, data) => {
-			let resp = tryParse(data);
+function preview(value) {
+	let text;
+	try {
+		text = typeof value === 'string' ? value : JSON.stringify(value);
+	} catch(err) {
+		text = String(value);
+	}
 
-			if(resp && Array.isArray(resp))
-				resolve(resp);
-			else
-				reject(e);
-		});
-	});
+	return (text || '<empty>').replace(/\s+/g, ' ').slice(0, 500);
 }
 
 function getCurrency(amount) { return amount.substr(amount.indexOf(' ') + 1); }
