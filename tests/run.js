@@ -10,6 +10,7 @@ async function testStreamWaitsBeforeCheckpoint() {
 	const originalGetBlock = utils.getBlock;
 	let callbackFinished = false;
 	let savedBlock = null;
+	let checkpoint = null;
 
 	utils.getHeadBlockNum = async () => 11;
 	utils.getBlock = async () => [{ trx_id: 'trx-1', type: 'token_transfer' }];
@@ -24,12 +25,16 @@ async function testStreamWaitsBeforeCheckpoint() {
 			save_state: async block => {
 				assert.strictEqual(callbackFinished, true);
 				savedBlock = block;
+			},
+			on_checkpoint: async status => {
+				checkpoint = status;
 				streamer.stop();
 			},
 			poll_interval_ms: 60000
 		});
 
 		assert.strictEqual(savedBlock, 11);
+		assert.deepStrictEqual(checkpoint, { last_block_polled: 11, last_block_number_processed: 11 });
 	} finally {
 		streamer.stop();
 		utils.getHeadBlockNum = originalGetHeadBlockNum;

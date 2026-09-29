@@ -51,6 +51,8 @@ async function getNextBlock(last_block) {
 			last_block++;
 			await _options.save_state(last_block);
 			_last_block = last_block;
+			if(_options.on_checkpoint)
+				await _options.on_checkpoint({ last_block_polled: last_block, last_block_number_processed: last_block });
 		} catch (err) {
 			utils.log(`Error loading block: ${last_block}, Error: ${err}!`, 1, 'Red');
 			break;

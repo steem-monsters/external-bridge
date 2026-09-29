@@ -53,6 +53,8 @@ function stream(on_tx, types) {
 	streamer.start(on_tx, _options);
 }
 
+function getStreamStatus() { return streamer.getStatus(); }
+
 async function processPurchase(purchase_id, payment) {
 	return new Promise(async (resolve, reject) => {
 		let purchase = await db.lookupSingle('purchases', { uid: purchase_id });
@@ -270,6 +272,7 @@ async function customJson(id, json, account, key, use_active) {
 module.exports = {
 	init, 
 	stream, 
+	getStreamStatus,
 	sendDec, 
 	sendToken, 
 	sendPacks, 
