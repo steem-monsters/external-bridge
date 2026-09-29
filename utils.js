@@ -29,8 +29,12 @@ function getJson(url, description) {
 				return reject(new Error(`${description} request failed: ${error.message || error}`));
 
 			const statusCode = response && response.statusCode;
-			if(!statusCode || statusCode < 200 || statusCode >= 300)
-				return reject(new Error(`${description} returned HTTP ${statusCode || 'unknown'}: ${preview(data)}`));
+			if(!statusCode || statusCode < 200 || statusCode >= 300) {
+				const requestError = new Error(`${description} returned HTTP ${statusCode || 'unknown'}: ${preview(data)}`);
+				requestError.status_code = statusCode || null;
+				requestError.response_body = data;
+				return reject(requestError);
+			}
 
 			try {
 				resolve(JSON.parse(data));
@@ -39,6 +43,13 @@ function getJson(url, description) {
 			}
 		});
 	});
+}
+
+function isBlockNotReadyError(error) {
+	if(!error || Number(error.status_code) !== 400)
+		return false;
+
+	return /has not been processed yet/i.test(String(error.response_body || error.message || ''));
 }
 
 function preview(value) {
@@ -112,5 +123,6 @@ module.exports = {
 	tryParse,
 	getCurrency,
 	getHeadBlockNum,
-	getBlock
+	getBlock,
+	isBlockNotReadyError
 }
