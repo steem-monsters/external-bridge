@@ -16,6 +16,7 @@ async function start(callback, options) {
 	cb = callback;
 	_options = Object.assign(_options, options);
 	let last_block = await _options.load_state();
+	_last_block = Number.isFinite(Number(last_block)) ? Number(last_block) - 1 : null;
 	utils.log(`Streamer starting from block: ${last_block || 'HEAD'}. Op Types: [${!options.types || options.types.length == 0 ? 'All' : options.types}]`);
 	_is_streaming = true;
 	await getNextBlock(last_block);
@@ -47,14 +48,18 @@ async function getNextBlock(last_block) {
 	// If we have a new block, process it
 	while(head_block > last_block) {
 		try {
-			await processBlock(last_block);
-			last_block++;
+			const processedBlock = last_block;
+			await processBlock(processedBlock);
+			last_block = processedBlock + 1;
 			await _options.save_state(last_block);
-			_last_block = last_block;
+			_last_block = processedBlock;
 			if(_options.on_checkpoint)
-				await _options.on_checkpoint({ last_block_polled: last_block, last_block_number_processed: last_block });
+				await _options.on_checkpoint({ last_block_polled: processedBlock, last_block_number_processed: processedBlock });
 		} catch (err) {
-			utils.log(`Error loading block: ${last_block}, Error: ${err}!`, 1, 'Red');
+			if(utils.isBlockNotReadyError(err))
+				utils.log(`Block ${last_block} is not available from the game API yet; retrying without advancing the checkpoint.`, 3, 'Yellow');
+			else
+				utils.log(`Error loading block: ${last_block}, Error: ${err}!`, 1, 'Red');
 			break;
 		}
 	}

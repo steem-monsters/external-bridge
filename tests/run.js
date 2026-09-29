@@ -34,7 +34,8 @@ async function testStreamWaitsBeforeCheckpoint() {
 		});
 
 		assert.strictEqual(savedBlock, 11);
-		assert.deepStrictEqual(checkpoint, { last_block_polled: 11, last_block_number_processed: 11 });
+		assert.deepStrictEqual(checkpoint, { last_block_polled: 10, last_block_number_processed: 10 });
+		assert.strictEqual(streamer.getStatus().last_block, 10);
 	} finally {
 		streamer.stop();
 		utils.getHeadBlockNum = originalGetHeadBlockNum;
@@ -76,6 +77,12 @@ async function testHttpDiagnostics() {
 			return res.end(JSON.stringify({ last_block: 123 }));
 		}
 
+		if(req.url === '/transactions/by_block?block=100') {
+			res.statusCode = 400;
+			res.setHeader('Content-Type', 'application/json');
+			return res.end(JSON.stringify({ error: 'Block 100 has not been processed yet.' }));
+		}
+
 		res.statusCode = 503;
 		res.end('upstream unavailable');
 	});
@@ -89,6 +96,10 @@ async function testHttpDiagnostics() {
 		await assert.rejects(
 			utils.getBlock(99),
 			error => error.message.includes('HTTP 503') && error.message.includes('upstream unavailable')
+		);
+		await assert.rejects(
+			utils.getBlock(100),
+			error => utils.isBlockNotReadyError(error)
 		);
 	} finally {
 		await new Promise(resolve => server.close(resolve));
