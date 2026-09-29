@@ -46,7 +46,7 @@ function getJson(url, description) {
 }
 
 function isBlockNotReadyError(error) {
-	if(!error || Number(error.status_code) !== 400)
+	if(!error)
 		return false;
 
 	return /has not been processed yet/i.test(String(error.response_body || error.message || ''));

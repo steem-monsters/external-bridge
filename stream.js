@@ -56,9 +56,7 @@ async function getNextBlock(last_block) {
 			if(_options.on_checkpoint)
 				await _options.on_checkpoint({ last_block_polled: processedBlock, last_block_number_processed: processedBlock });
 		} catch (err) {
-			if(utils.isBlockNotReadyError(err))
-				utils.log(`Block ${last_block} is not available from the game API yet; retrying without advancing the checkpoint.`, 3, 'Yellow');
-			else
+			if(!utils.isBlockNotReadyError(err))
 				utils.log(`Error loading block: ${last_block}, Error: ${err}!`, 1, 'Red');
 			break;
 		}

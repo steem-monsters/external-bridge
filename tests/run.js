@@ -106,10 +106,42 @@ async function testHttpDiagnostics() {
 	}
 }
 
+async function testBlockNotReadyIsSilentAndDoesNotCheckpoint() {
+	const originalGetHeadBlockNum = utils.getHeadBlockNum;
+	const originalGetBlock = utils.getBlock;
+	const originalLog = utils.log;
+	const messages = [];
+	let saveCount = 0;
+
+	utils.getHeadBlockNum = async () => 101;
+	utils.getBlock = async () => {
+		throw new Error('Block 100 has not been processed yet.');
+	};
+	utils.log = message => messages.push(String(message));
+
+	try {
+		await streamer.start(async () => {}, {
+			load_state: async () => 100,
+			save_state: async () => { saveCount++; },
+			poll_interval_ms: 60000
+		});
+
+		assert.strictEqual(saveCount, 0);
+		assert.strictEqual(messages.some(message => /has not been processed yet/i.test(message)), false);
+		assert.strictEqual(messages.some(message => /Error loading block/i.test(message)), false);
+	} finally {
+		streamer.stop();
+		utils.getHeadBlockNum = originalGetHeadBlockNum;
+		utils.getBlock = originalGetBlock;
+		utils.log = originalLog;
+	}
+}
+
 (async () => {
 	await testStreamWaitsBeforeCheckpoint();
 	await testRejectedCallbackDoesNotCheckpoint();
 	await testHttpDiagnostics();
+	await testBlockNotReadyIsSilentAndDoesNotCheckpoint();
 	console.log('external-bridge tests ok');
 })().catch(error => {
 	console.error(error);
